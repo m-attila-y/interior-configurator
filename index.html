@@ -235,85 +235,98 @@
     let activeZone = null;
     const COLOR_TOLERANCE = 22;
 
-    // Procedural Seamless High-Res Pattern Generators
-    function createWoodTexture(baseR, baseG, baseB, darkR, darkG, darkB, plankWidth = 32) {
+    // Organic Architectural Procedural Generators (No Sine Waves)
+    function createNaturalWood(baseR, baseG, baseB, darkR, darkG, darkB, plankSize = 48) {
       const c = document.createElement('canvas');
       c.width = 512;
       c.height = 512;
       const cx = c.getContext('2d');
-      const imgData = cx.createImageData(512, 512);
-      const d = imgData.data;
+      const img = cx.createImageData(512, 512);
+      const d = img.data;
 
       for (let y = 0; y < 512; y++) {
         for (let x = 0; x < 512; x++) {
           const idx = (y * 512 + x) * 4;
-          const grain = (Math.sin(x * 0.12 + Math.sin(y * 0.04) * 4) + 1) * 0.5;
-          const noise = (Math.random() - 0.5) * 16;
-          const isSeam = (x % plankWidth === 0);
+          
+          // Micro fibrous grain lines along vertical planks
+          const fiber = (Math.sin(x * 1.5) * 0.2 + (Math.sin(x * 0.4) * 0.8) + 1.0) * 0.5;
+          const noise = ((Math.random() - 0.5) * 16);
+          const plankEdge = (x % plankSize === 0) || (x % plankSize === 1);
 
-          if (isSeam) {
-            d[idx] = Math.max(0, baseR - 45);
-            d[idx + 1] = Math.max(0, baseG - 45);
-            d[idx + 2] = Math.max(0, baseB - 45);
+          if (plankEdge) {
+            d[idx] = Math.max(0, baseR - 40);
+            d[idx + 1] = Math.max(0, baseG - 40);
+            d[idx + 2] = Math.max(0, baseB - 40);
           } else {
-            d[idx] = Math.min(255, Math.max(0, (baseR * grain + darkR * (1 - grain)) + noise));
-            d[idx + 1] = Math.min(255, Math.max(0, (baseG * grain + darkG * (1 - grain)) + noise));
-            d[idx + 2] = Math.min(255, Math.max(0, (baseB * grain + darkB * (1 - grain)) + noise));
+            const blend = fiber * 0.7 + 0.3;
+            d[idx] = Math.min(255, Math.max(0, (baseR * blend + darkR * (1 - blend)) + noise));
+            d[idx + 1] = Math.min(255, Math.max(0, (baseG * blend + darkG * (1 - blend)) + noise));
+            d[idx + 2] = Math.min(255, Math.max(0, (baseB * blend + darkB * (1 - blend)) + noise));
           }
           d[idx + 3] = 255;
         }
       }
-      cx.putImageData(imgData, 0, 0);
+      cx.putImageData(img, 0, 0);
       return c;
     }
 
-    function createStoneTexture(baseR, baseG, baseB, veinR, veinG, veinB) {
+    function createOrganicMarble(baseR, baseG, baseB, veinR, veinG, veinB) {
       const c = document.createElement('canvas');
       c.width = 512;
       c.height = 512;
       const cx = c.getContext('2d');
-      const imgData = cx.createImageData(512, 512);
-      const d = imgData.data;
+      const img = cx.createImageData(512, 512);
+      const d = img.data;
 
+      // Noise lattice for natural non-repetitive veining
       for (let y = 0; y < 512; y++) {
         for (let x = 0; x < 512; x++) {
           const idx = (y * 512 + x) * 4;
-          const vein = Math.sin(x * 0.025 + y * 0.025 + Math.sin(x * 0.06) * 2.5);
-          const isVein = Math.abs(vein) < 0.06;
-          const noise = (Math.random() - 0.5) * 8;
-
-          if (isVein) {
-            d[idx] = Math.min(255, Math.max(0, veinR + noise));
-            d[idx + 1] = Math.min(255, Math.max(0, veinG + noise));
-            d[idx + 2] = Math.min(255, Math.max(0, veinB + noise));
-          } else {
-            d[idx] = Math.min(255, Math.max(0, baseR + noise));
-            d[idx + 1] = Math.min(255, Math.max(0, baseG + noise));
-            d[idx + 2] = Math.min(255, Math.max(0, baseB + noise));
-          }
+          
+          // Subtle stone grain
+          const n = (Math.random() - 0.5) * 10;
+          d[idx] = Math.min(255, Math.max(0, baseR + n));
+          d[idx + 1] = Math.min(255, Math.max(0, baseG + n));
+          d[idx + 2] = Math.min(255, Math.max(0, baseB + n));
           d[idx + 3] = 255;
         }
       }
-      cx.putImageData(imgData, 0, 0);
+      cx.putImageData(img, 0, 0);
+
+      // Draw subtle natural mineral fractures across stone slab
+      cx.strokeStyle = `rgba(${veinR}, ${veinG}, ${veinB}, 0.25)`;
+      cx.lineWidth = 1.5;
+      cx.beginPath();
+      cx.moveTo(40, 0);
+      cx.bezierCurveTo(120, 180, 240, 320, 380, 512);
+      cx.stroke();
+
+      cx.strokeStyle = `rgba(${veinR}, ${veinG}, ${veinB}, 0.15)`;
+      cx.lineWidth = 1;
+      cx.beginPath();
+      cx.moveTo(180, 120);
+      cx.bezierCurveTo(280, 220, 310, 300, 512, 380);
+      cx.stroke();
+
       return c;
     }
 
-    function createPlasterTexture(r, g, b) {
+    function createVelvetPlaster(r, g, b) {
       const c = document.createElement('canvas');
       c.width = 512;
       c.height = 512;
       const cx = c.getContext('2d');
-      const imgData = cx.createImageData(512, 512);
-      const d = imgData.data;
+      const img = cx.createImageData(512, 512);
+      const d = img.data;
 
       for (let i = 0; i < d.length; i += 4) {
-        const noise = (Math.random() - 0.5) * 10;
+        const noise = (Math.random() - 0.5) * 8;
         d[i] = Math.min(255, Math.max(0, r + noise));
         d[i + 1] = Math.min(255, Math.max(0, g + noise));
         d[i + 2] = Math.min(255, Math.max(0, b + noise));
         d[i + 3] = 255;
       }
-      cx.putImageData(imgData, 0, 0);
+      cx.putImageData(img, 0, 0);
       return c;
     }
 
@@ -324,10 +337,10 @@
         isFloorPlane: true,
         items: [
           { id: 'orig', name: 'Original Oak Planks', sub: 'Baseline Architectural Finish', isOriginal: true },
-          { id: 'fl_walnut', name: 'Smoked American Walnut', sub: 'Deep Espresso Tone', textureCanvas: createWoodTexture(75, 52, 38, 48, 32, 22, 36) },
-          { id: 'fl_nordic', name: 'Nordic White Bleached Oak', sub: 'Light Scandinavian Tone', textureCanvas: createWoodTexture(220, 212, 198, 195, 185, 170, 36) },
-          { id: 'fl_marble', name: 'Calacatta Honed Marble', sub: 'Large Format 120x120', textureCanvas: createStoneTexture(232, 230, 226, 150, 150, 155) },
-          { id: 'fl_slate',  name: 'Anthracite Flamed Slate', sub: 'Natural Dark Cleft Stone', textureCanvas: createStoneTexture(65, 68, 72, 42, 45, 48) }
+          { id: 'fl_walnut', name: 'Smoked American Walnut', sub: 'Deep Satin Espresso', textureCanvas: createNaturalWood(70, 52, 40, 48, 34, 24, 44), specMult: 0.22 },
+          { id: 'fl_nordic', name: 'Nordic Bleached Oak', sub: 'Light Matte Scandinavian', textureCanvas: createNaturalWood(215, 206, 192, 190, 180, 166, 44), specMult: 0.20 },
+          { id: 'fl_marble', name: 'Calacatta Honed Marble', sub: 'Polished Architectural Slab', textureCanvas: createOrganicMarble(236, 234, 230, 140, 140, 145), specMult: 0.35 },
+          { id: 'fl_slate',  name: 'Anthracite Flamed Slate', sub: 'Matte Cleft Stone', textureCanvas: createVelvetPlaster(58, 60, 64), specMult: 0.15 }
         ]
       },
       wall: {
@@ -335,10 +348,10 @@
         matcher: (r, g, b) => (g > 120 && r < 90 && b < 90),
         items: [
           { id: 'orig', name: 'Original Warm Neutral', sub: 'Baseline Architectural Finish', isOriginal: true },
-          { id: 'wl_lime',   name: 'Roman Travertine Plaster', sub: 'Textured Lime Wash', textureCanvas: createPlasterTexture(230, 225, 212) },
-          { id: 'wl_sage',   name: 'Nordic Sage Micro-Cement', sub: 'Smooth Mineral Finish', textureCanvas: createPlasterTexture(135, 150, 140) },
-          { id: 'wl_graph',  name: 'Charcoal Slag Plaster', sub: 'Dark Contemporary Accent', textureCanvas: createPlasterTexture(60, 62, 65) },
-          { id: 'wl_terrac', name: 'Terracotta Siena Clay', sub: 'Natural Earthen Pigment', textureCanvas: createPlasterTexture(165, 90, 72) }
+          { id: 'wl_lime',   name: 'Roman Travertine Lime', sub: 'Matte Mineral Wash', textureCanvas: createVelvetPlaster(232, 226, 214), specMult: 0.10 },
+          { id: 'wl_sage',   name: 'Nordic Sage Micro-Cement', sub: 'Smooth Mineral Finish', textureCanvas: createVelvetPlaster(138, 152, 142), specMult: 0.10 },
+          { id: 'wl_graph',  name: 'Charcoal Slag Plaster', sub: 'Dark Contemporary Accent', textureCanvas: createVelvetPlaster(55, 58, 62), specMult: 0.10 },
+          { id: 'wl_terrac', name: 'Terracotta Siena Clay', sub: 'Natural Earthen Pigment', textureCanvas: createVelvetPlaster(165, 88, 70), specMult: 0.10 }
         ]
       },
       cabinet: {
@@ -346,9 +359,9 @@
         matcher: (r, g, b) => (r > 150 && g > 90 && b < 60) || (b > 160 && r < 80),
         items: [
           { id: 'orig', name: 'Original Natural Finish', sub: 'Baseline Architectural Finish', isOriginal: true },
-          { id: 'cb_black',  name: 'Matte Obsidian Fenix', sub: 'Anti-Fingerprint Nano Finish', textureCanvas: createPlasterTexture(40, 42, 44) },
-          { id: 'cb_eak',    name: 'Rift Cut Warm Oak', sub: 'Vertical Grain Veneer', textureCanvas: createWoodTexture(180, 150, 115, 140, 110, 82, 28) },
-          { id: 'cb_cream',  name: 'Warm Cashmere Lacquer', sub: 'Satin Polyurethane', textureCanvas: createPlasterTexture(222, 218, 208) }
+          { id: 'cb_black',  name: 'Matte Obsidian Fenix', sub: 'Ultra-Matte Nano Finish', textureCanvas: createVelvetPlaster(38, 40, 42), specMult: 0.12 },
+          { id: 'cb_eak',    name: 'Rift Cut Warm Oak', sub: 'Vertical Grain Veneer', textureCanvas: createNaturalWood(175, 148, 114, 135, 108, 80, 24), specMult: 0.18 },
+          { id: 'cb_cream',  name: 'Warm Cashmere Lacquer', sub: 'Satin Polyurethane', textureCanvas: createVelvetPlaster(220, 216, 206), specMult: 0.18 }
         ]
       }
     };
@@ -417,7 +430,7 @@
       const outImageData = ctx.createImageData(imgW, imgH);
       const out = outImageData.data;
 
-      // 1. Copy baseline beauty pass
+      // 1. Base Beauty pass
       out.set(beautyPixels);
 
       if (activeModifications.size === 0) {
@@ -425,8 +438,6 @@
         return;
       }
 
-      // Camera Horizon / Vanishing Line for Floor Perspective Mapping
-      // In this scene, eye level horizon sits at roughly 45% height (stairs bottom)
       const horizonY = imgH * 0.44;
       const vanishingX = imgW * 0.48;
 
@@ -436,9 +447,9 @@
         const [tr, tg, tb] = rgbKey.split(',').map(Number);
         const texData = matItem.texData;
         const isFloor = matItem.isFloorPlane;
+        const specMult = matItem.specMult || 0.20; // Natural specular clamp
 
         for (let y = 0; y < imgH; y++) {
-          // Perspective scale factor for ground plane (Z-depth foreshortening)
           const dy = y - horizonY;
           const zDepth = dy > 1 ? (imgH / dy) : 999;
 
@@ -456,17 +467,16 @@
               let u, v;
 
               if (isFloor && dy > 0) {
-                // Perspective-correct floor UV projection
+                // Stabilized ground UV mapping without stretch
                 const normX = (x - vanishingX) / imgW;
-                const worldX = normX * zDepth * 400;
-                const worldY = zDepth * 350;
+                const worldX = normX * zDepth * 320;
+                const worldY = zDepth * 280;
 
                 u = Math.floor(Math.abs(worldX)) % 512;
                 v = Math.floor(Math.abs(worldY)) % 512;
               } else {
-                // Planar mapping for vertical surfaces (walls, cabinets)
-                u = Math.floor(x * 0.8) % 512;
-                v = Math.floor(y * 0.8) % 512;
+                u = Math.floor(x * 0.6) % 512;
+                v = Math.floor(y * 0.6) % 512;
               }
 
               const texIdx = (v * 512 + u) * 4;
@@ -474,29 +484,25 @@
               const albedoG = texData[texIdx + 1];
               const albedoB = texData[texIdx + 2];
 
-              // LIGHT PRESERVATION (Delighting & Realistic Relighting):
-              // Extract original incident lighting luminance from beauty pass
+              // Light extraction
               const origR = beautyPixels[i];
               const origG = beautyPixels[i + 1];
               const origB = beautyPixels[i + 2];
               const origLuma = (0.299 * origR + 0.587 * origG + 0.114 * origB) / 255.0;
 
-              // Incorporate AO for contact crevice depth
               const ao = aoPixels[i] / 255.0;
-              const lightModulator = Math.pow(origLuma, 0.85) * (0.4 + 0.6 * ao) * 1.35;
+              const lightModulator = Math.pow(origLuma, 0.9) * (0.5 + 0.5 * ao) * 1.25;
 
-              // Shaded albedo with full incident scene bounce lighting
+              // Shaded diffuse
               const shadedR = albedoR * lightModulator;
               const shadedG = albedoG * lightModulator;
               const shadedB = albedoB * lightModulator;
 
-              // FRESNEL ADDITIVE REFLECTION
-              // Reflection map contains only highlight sheen; add softly without crushing diffuse base
-              const refR = refPixels[i] * 0.75;
-              const refG = refPixels[i + 1] * 0.75;
-              const refB = refPixels[i + 2] * 0.75;
+              // Realistic reflection: Attenuated by material roughness multiplier
+              const refR = refPixels[i] * specMult;
+              const refG = refPixels[i + 1] * specMult;
+              const refB = refPixels[i + 2] * specMult;
 
-              // Additive highlight blend with highlight preservation
               out[i]     = Math.min(255, shadedR + refR);
               out[i + 1] = Math.min(255, shadedG + refG);
               out[i + 2] = Math.min(255, shadedB + refB);
@@ -519,8 +525,8 @@
           title: 'Selected Surface',
           items: [
             { id: 'orig', name: 'Original Finish', sub: 'Baseline Architectural Render', isOriginal: true },
-            { id: 'gen_oak', name: 'Natural Oak', sub: 'Fine Grain Finish', textureCanvas: createWoodTexture(180, 145, 110, 140, 110, 80) },
-            { id: 'gen_dark', name: 'Dark Slate', sub: 'Mineral Finish', textureCanvas: createPlasterTexture(50, 52, 55) }
+            { id: 'gen_oak', name: 'Natural Oak', sub: 'Fine Grain Finish', textureCanvas: createNaturalWood(175, 148, 114, 135, 108, 80), specMult: 0.18 },
+            { id: 'gen_dark', name: 'Dark Slate', sub: 'Mineral Finish', textureCanvas: createVelvetPlaster(55, 58, 62), specMult: 0.15 }
           ]
         }
       };
@@ -561,7 +567,6 @@
           if (item.isOriginal) {
             activeModifications.delete(rgbKey);
           } else {
-            // Tag with floor plane property for perspective projection
             item.isFloorPlane = catInfo.config.isFloorPlane || false;
             activeModifications.set(rgbKey, item);
           }
