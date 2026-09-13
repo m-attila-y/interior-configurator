@@ -6,13 +6,12 @@
   <title>Interior Material Configurator</title>
   <style>
     :root {
-      --bg-dark: #121212;
-      --panel-bg: rgba(22, 22, 24, 0.88);
-      --border-color: rgba(255, 255, 255, 0.12);
-      --text-main: #f5f5f7;
-      --text-sub: #a1a1a6;
-      --accent: #2997ff;
-      --danger: #ff453a;
+      --bg-dark: #101012;
+      --panel-bg: rgba(20, 20, 23, 0.92);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f5f5f7;
+      --text-sub: #8e8e93;
+      --accent: #0a84ff;
     }
 
     * {
@@ -25,7 +24,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg-dark);
-      color: var(--text-main);
+      color: var(--text);
       overflow: hidden;
       width: 100vw;
       height: 100vh;
@@ -44,7 +43,7 @@
     }
 
     canvas {
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
       max-width: 100%;
       max-height: 100%;
       cursor: crosshair;
@@ -56,106 +55,105 @@
       top: 20px;
       background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(12px);
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border);
       padding: 10px 20px;
       border-radius: 999px;
       font-size: 13px;
-      letter-spacing: 0.3px;
       color: var(--text-sub);
       pointer-events: none;
       z-index: 10;
     }
 
-    #error-log {
-      display: none;
-      position: absolute;
-      top: 70px;
-      max-width: 80%;
-      background: rgba(40, 10, 10, 0.9);
-      border: 1px solid var(--danger);
-      color: #fff;
-      padding: 16px 20px;
-      border-radius: 10px;
-      font-size: 13px;
-      line-height: 1.5;
-      z-index: 100;
-      backdrop-filter: blur(10px);
-    }
-    #error-log h4 {
-      color: var(--danger);
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
-
     #sidebar {
-      width: 320px;
+      width: 340px;
       background: var(--panel-bg);
-      backdrop-filter: blur(20px);
-      border-left: 1px solid var(--border-color);
+      backdrop-filter: blur(24px);
+      border-left: 1px solid var(--border);
       padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
       z-index: 20;
     }
 
     h2 {
       font-size: 17px;
       font-weight: 600;
-      letter-spacing: -0.2px;
+      letter-spacing: -0.3px;
     }
 
     .status-card {
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 13px;
-    }
-
-    .status-card p {
-      margin-bottom: 6px;
-      color: var(--text-sub);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
     }
 
     .status-badge {
-      display: inline-flex;
+      display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      font-size: 14px;
       font-weight: 500;
-      color: #fff;
+      margin-top: 4px;
     }
 
-    .id-preview-dot {
+    .zone-indicator {
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.4);
+      border: 1px solid rgba(255,255,255,0.3);
       display: inline-block;
     }
 
-    .swatches-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
+    .options-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      max-height: 60vh;
+      padding-right: 4px;
+    }
+
+    .material-card {
+      display: flex;
+      align-items: center;
       gap: 12px;
-      margin-top: 8px;
-    }
-
-    .swatch-btn {
-      aspect-ratio: 1;
+      padding: 8px 10px;
       border-radius: 8px;
-      border: 2px solid transparent;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid transparent;
       cursor: pointer;
-      position: relative;
-      transition: transform 0.15s ease, border-color 0.15s ease;
+      transition: all 0.15s ease;
     }
 
-    .swatch-btn:hover {
-      transform: scale(1.05);
+    .material-card:hover {
+      background: rgba(255, 255, 255, 0.08);
     }
 
-    .swatch-btn.active {
-      border-color: #fff;
+    .material-card.active {
+      border-color: var(--accent);
+      background: rgba(10, 132, 255, 0.15);
+    }
+
+    .thumb-preview {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background-size: cover;
+      background-position: center;
+      flex-shrink: 0;
+    }
+
+    .mat-info h4 {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .mat-info p {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 2px;
     }
 
     .actions {
@@ -166,31 +164,26 @@
     }
 
     .btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
       color: #fff;
       padding: 10px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       transition: background 0.15s ease;
       text-align: center;
     }
-
     .btn:hover {
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.15);
     }
   </style>
 </head>
 <body>
 
   <div id="stage-container">
-    <div class="hint-banner" id="hintBanner">Loading render passes...</div>
-    <div id="error-log">
-      <h4>Image Load Diagnostic</h4>
-      <div id="error-details"></div>
-    </div>
+    <div class="hint-banner" id="hintBanner">Loading render assets...</div>
     <canvas id="renderCanvas"></canvas>
   </div>
 
@@ -200,29 +193,22 @@
     </div>
 
     <div class="status-card">
-      <p>Active Surface</p>
+      <span style="font-size: 11px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px;">Selected Surface</span>
       <div class="status-badge">
-        <span id="idDot" class="id-preview-dot" style="background: transparent;"></span>
-        <span id="targetName">None selected</span>
+        <span id="idDot" class="zone-indicator" style="background: transparent;"></span>
+        <span id="targetName">Click any surface to customize</span>
       </div>
     </div>
 
     <div>
-      <h3 style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Presets</h3>
-      <div class="swatches-grid">
-        <button class="swatch-btn" style="background: #2b2520;" data-r="43" data-g="37" data-b="32" title="Smoked Dark Walnut"></button>
-        <button class="swatch-btn" style="background: #a48261;" data-r="164" data-g="130" data-b="97" title="Natural Oak"></button>
-        <button class="swatch-btn" style="background: #ded7ce;" data-r="222" data-g="215" data-b="206" title="White Washed Nordic"></button>
-        <button class="swatch-btn" style="background: #474b4e;" data-r="71" data-g="75" data-b="78" title="Anthracite Slate"></button>
-        <button class="swatch-btn" style="background: #8b3a2b;" data-r="139" data-g="58" data-b="43" title="Terracotta Finish"></button>
-        <button class="swatch-btn" style="background: #2e3a35;" data-r="46" data-g="58" data-b="53" title="Forest Olive"></button>
-        <button class="swatch-btn" style="background: #eae9e5;" data-r="234" data-g="233" data-b="229" title="Warm Plaster / Calacatta"></button>
-        <button class="swatch-btn" style="background: #1e1e20;" data-r="30" data-g="30" data-b="32" title="Matte Charcoal"></button>
+      <h3 style="font-size: 11px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Available Finishes</h3>
+      <div class="options-container" id="materialOptions">
+        <p style="font-size: 13px; color: var(--text-sub); padding: 10px 0;">Select a wall, floor, or cabinet surface to see its tailored materials.</p>
       </div>
     </div>
 
     <div class="actions">
-      <button class="btn" id="resetBtn">Reset All to Original</button>
+      <button class="btn" id="resetAllBtn">Reset All Surfaces</button>
     </div>
   </aside>
 
@@ -237,19 +223,156 @@
     const canvas = document.getElementById('renderCanvas');
     const ctx = canvas.getContext('2d');
     const hintBanner = document.getElementById('hintBanner');
-    const errorLog = document.getElementById('error-log');
-    const errorDetails = document.getElementById('error-details');
+    const materialOptions = document.getElementById('materialOptions');
+    const targetName = document.getElementById('targetName');
+    const idDot = document.getElementById('idDot');
 
-    const activeModifications = new Map(); // Key: "r,g,b", Value: {r, g, b}
-    let currentSelectedRGB = null;
-    const loadedImages = {};
-    const COLOR_TOLERANCE = 18;
-
-    // Pixel buffers
-    let beautyPixels, aoPixels, idPixels, refPixels;
     let imgW, imgH;
+    let beautyPixels, aoPixels, idPixels, refPixels;
+    const loadedImages = {};
 
-    function getBuffer(img) {
+    // Map: Category Key -> Map of surface RGB IDs -> selected finish ID
+    const activeModifications = new Map(); // key: "r,g,b", value: materialDefinition
+    let activeZone = null; // { categoryKey, rgbKey, r, g, b }
+
+    const COLOR_TOLERANCE = 22;
+
+    // Procedural texture generators for ultra-fast, realistic procedural materials
+    function createWoodTexture(baseR, baseG, baseB, darkR, darkG, darkB, plankWidth = 40) {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 256;
+      const cx = c.getContext('2d');
+      const imgData = cx.createImageData(256, 256);
+      const d = imgData.data;
+
+      for (let y = 0; y < 256; y++) {
+        for (let x = 0; x < 256; x++) {
+          const idx = (y * 256 + x) * 4;
+          // Grain simulation
+          const grain = (Math.sin(x * 0.15 + Math.sin(y * 0.05) * 6) + 1) * 0.5;
+          const noise = (Math.random() - 0.5) * 20;
+
+          // Plank edge lines
+          const isSeam = (x % plankWidth === 0);
+          if (isSeam) {
+            d[idx] = Math.max(0, baseR - 60);
+            d[idx + 1] = Math.max(0, baseG - 60);
+            d[idx + 2] = Math.max(0, baseB - 60);
+          } else {
+            d[idx] = Math.min(255, Math.max(0, (baseR * grain + darkR * (1 - grain)) + noise));
+            d[idx + 1] = Math.min(255, Math.max(0, (baseG * grain + darkG * (1 - grain)) + noise));
+            d[idx + 2] = Math.min(255, Math.max(0, (baseB * grain + darkB * (1 - grain)) + noise));
+          }
+          d[idx + 3] = 255;
+        }
+      }
+      cx.putImageData(imgData, 0, 0);
+      return c;
+    }
+
+    function createStoneTexture(baseR, baseG, baseB, veinR, veinG, veinB) {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 256;
+      const cx = c.getContext('2d');
+      const imgData = cx.createImageData(256, 256);
+      const d = imgData.data;
+
+      for (let y = 0; y < 256; y++) {
+        for (let x = 0; x < 256; x++) {
+          const idx = (y * 256 + x) * 4;
+          const vein = Math.sin(x * 0.04 + y * 0.04 + Math.sin(x * 0.1) * 2);
+          const isVein = Math.abs(vein) < 0.08;
+          const noise = (Math.random() - 0.5) * 12;
+
+          if (isVein) {
+            d[idx] = Math.min(255, Math.max(0, veinR + noise));
+            d[idx + 1] = Math.min(255, Math.max(0, veinG + noise));
+            d[idx + 2] = Math.min(255, Math.max(0, veinB + noise));
+          } else {
+            d[idx] = Math.min(255, Math.max(0, baseR + noise));
+            d[idx + 1] = Math.min(255, Math.max(0, baseG + noise));
+            d[idx + 2] = Math.min(255, Math.max(0, baseB + noise));
+          }
+          d[idx + 3] = 255;
+        }
+      }
+      cx.putImageData(imgData, 0, 0);
+      return c;
+    }
+
+    function createPlasterTexture(r, g, b) {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 256;
+      const cx = c.getContext('2d');
+      const imgData = cx.createImageData(256, 256);
+      const d = imgData.data;
+
+      for (let i = 0; i < d.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 14;
+        d[i] = Math.min(255, Math.max(0, r + noise));
+        d[i + 1] = Math.min(255, Math.max(0, g + noise));
+        d[i + 2] = Math.min(255, Math.max(0, b + noise));
+        d[i + 3] = 255;
+      }
+      cx.putImageData(imgData, 0, 0);
+      return c;
+    }
+
+    // Material Catalog categorized by architectural zone
+    const MATERIAL_CATALOG = {
+      floor: {
+        title: 'Flooring Surface',
+        matcher: (r, g, b) => (r > 130 && r < 180 && g < 130 && b > 180), // Target MaterialID Purple: (153, 102, 204)
+        items: [
+          { id: 'orig', name: 'Original Oak Herringbone', sub: 'Baseline Architectural Finish', isOriginal: true },
+          { id: 'fl_walnut', name: 'Smoked American Walnut', sub: 'Dark Engineered Plank', textureCanvas: createWoodTexture(60, 42, 30, 35, 25, 18, 48), scale: 0.8 },
+          { id: 'fl_nordic', name: 'White Washed Ash', sub: 'Light Scandinavian Plank', textureCanvas: createWoodTexture(215, 205, 190, 185, 175, 160, 42), scale: 0.8 },
+          { id: 'fl_marble', name: 'Calacatta Honed Marble', sub: 'Large Format 120x120', textureCanvas: createStoneTexture(230, 228, 224, 130, 130, 135), scale: 1.2 },
+          { id: 'fl_slate',  name: 'Anthracite Flamed Slate', sub: 'Natural Cleft Stone', textureCanvas: createStoneTexture(55, 58, 62, 35, 38, 40), scale: 1.0 }
+        ]
+      },
+      wall: {
+        title: 'Wall Surface',
+        matcher: (r, g, b) => (g > 120 && r < 90 && b < 90), // Green Wall ID: (46, 139, 87 approx)
+        items: [
+          { id: 'orig', name: 'Original Warm Neutral', sub: 'Baseline Architectural Finish', isOriginal: true },
+          { id: 'wl_lime',   name: 'Roman Travertine Plaster', sub: 'Textured Lime Wash', textureCanvas: createPlasterTexture(228, 222, 210) },
+          { id: 'wl_sage',   name: 'Nordic Sage Micro-Cement', sub: 'Smooth Mineral Finish', textureCanvas: createPlasterTexture(125, 142, 130) },
+          { id: 'wl_graph',  name: 'Charcoal Slag Plaster', sub: 'Dark Contemporary Accent', textureCanvas: createPlasterTexture(50, 52, 55) },
+          { id: 'wl_terrac', name: 'Terracotta Siena Clay', sub: 'Natural Earthen Pigment', textureCanvas: createPlasterTexture(160, 85, 68) }
+        ]
+      },
+      cabinet: {
+        title: 'Kitchen & Millwork',
+        matcher: (r, g, b) => (r > 150 && g > 90 && b < 60) || (b > 160 && r < 80), // Cabinets / Kitchen blocks
+        items: [
+          { id: 'orig', name: 'Original Natural Finish', sub: 'Baseline Architectural Finish', isOriginal: true },
+          { id: 'cb_black',  name: 'Matte Obsidian Fenix', sub: 'Anti-Fingerprint Nano Finish', textureCanvas: createPlasterTexture(32, 33, 35) },
+          { id: 'cb_eak',    name: 'Rift Cut Natural Oak', sub: 'Vertical Grain Veneer', textureCanvas: createWoodTexture(175, 145, 110, 130, 105, 78, 30) },
+          { id: 'cb_cream',  name: 'Warm Cashmere Lacquer', sub: 'Satin Polyurethane', textureCanvas: createPlasterTexture(218, 213, 204) }
+        ]
+      }
+    };
+
+    function loadAsset(candidates) {
+      return new Promise((resolve, reject) => {
+        let i = 0;
+        function next() {
+          if (i >= candidates.length) return reject(new Error('Asset not found'));
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = () => { i++; next(); };
+          img.src = candidates[i];
+        }
+        next();
+      });
+    }
+
+    function extractPixels(img) {
       const c = document.createElement('canvas');
       c.width = img.naturalWidth;
       c.height = img.naturalHeight;
@@ -258,43 +381,14 @@
       return cx.getImageData(0, 0, c.width, c.height).data;
     }
 
-    function loadAssetWithFallbacks(candidates) {
-      return new Promise((resolve, reject) => {
-        let index = 0;
-        function tryNext() {
-          if (index >= candidates.length) {
-            reject(new Error(`Failed to load asset: checked ${candidates.join(', ')}`));
-            return;
-          }
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = () => resolve(img);
-          img.onerror = () => {
-            index++;
-            tryNext();
-          };
-          img.src = candidates[index];
-        }
-        tryNext();
-      });
-    }
-
     async function init() {
-      const keys = Object.keys(ASSET_CANDIDATES);
-      const errors = [];
-
-      for (const key of keys) {
-        try {
-          loadedImages[key] = await loadAssetWithFallbacks(ASSET_CANDIDATES[key]);
-        } catch (err) {
-          errors.push(err.message);
+      try {
+        for (const [key, paths] of Object.entries(ASSET_CANDIDATES)) {
+          loadedImages[key] = await loadAsset(paths);
         }
-      }
-
-      if (errors.length > 0) {
-        hintBanner.style.display = 'none';
-        errorLog.style.display = 'block';
-        errorDetails.innerHTML = errors.map(e => `<p style="margin-bottom:6px;">❌ ${e}</p>`).join('');
+      } catch (err) {
+        hintBanner.textContent = 'Error loading render assets. Check file names.';
+        hintBanner.style.color = '#ff453a';
         return;
       }
 
@@ -304,62 +398,80 @@
       canvas.width = imgW;
       canvas.height = imgH;
 
-      // Extract pixel data once for optimal performance
-      beautyPixels = getBuffer(loadedImages.beauty);
-      aoPixels = getBuffer(loadedImages.ao);
-      idPixels = getBuffer(loadedImages.materialId);
-      refPixels = getBuffer(loadedImages.reflection);
+      beautyPixels = extractPixels(loadedImages.beauty);
+      aoPixels = extractPixels(loadedImages.ao);
+      idPixels = extractPixels(loadedImages.materialId);
+      refPixels = extractPixels(loadedImages.reflection);
 
-      hintBanner.textContent = 'Click any surface (floor, wall, cabinets) to customize finish';
+      // Pre-extract pixel data from texture canvases
+      for (const cat of Object.values(MATERIAL_CATALOG)) {
+        for (const item of cat.items) {
+          if (item.textureCanvas) {
+            item.texCtx = item.textureCanvas.getContext('2d');
+            item.texData = item.texCtx.getImageData(0, 0, 256, 256).data;
+          }
+        }
+      }
+
+      hintBanner.textContent = 'Click any surface (floor, wall, cabinetry) to customize finish';
       render();
       setupEvents();
     }
 
     function render() {
-      // Create output image data buffer
       const outImageData = ctx.createImageData(imgW, imgH);
       const out = outImageData.data;
 
-      // 1. Copy original beauty pass completely
+      // 1. Copy original Beauty pass as baseline
       out.set(beautyPixels);
 
-      // 2. If there are modifications, update ONLY matching pixels
+      // 2. Composite selected textures
       if (activeModifications.size > 0) {
-        for (const [rgbKey, color] of activeModifications.entries()) {
+        for (const [rgbKey, matItem] of activeModifications.entries()) {
+          // If the user selected the original finish, skip overwriting
+          if (matItem.isOriginal || !matItem.texData) continue;
+
           const [tr, tg, tb] = rgbKey.split(',').map(Number);
-          const cr = color.r;
-          const cg = color.g;
-          const cb = color.b;
+          const texData = matItem.texData;
+          const scale = matItem.scale || 1.0;
 
-          for (let i = 0; i < idPixels.length; i += 4) {
-            const mr = idPixels[i];
-            const mg = idPixels[i + 1];
-            const mb = idPixels[i + 2];
+          for (let y = 0; y < imgH; y++) {
+            for (let x = 0; x < imgW; x++) {
+              const i = (y * imgW + x) * 4;
+              const mr = idPixels[i];
+              const mg = idPixels[i + 1];
+              const mb = idPixels[i + 2];
 
-            // Match Material ID zone
-            if (
-              Math.abs(mr - tr) <= COLOR_TOLERANCE &&
-              Math.abs(mg - tg) <= COLOR_TOLERANCE &&
-              Math.abs(mb - tb) <= COLOR_TOLERANCE
-            ) {
-              // AO factor normalized (0.0 - 1.0)
-              const ao = aoPixels[i] / 255.0;
+              if (
+                Math.abs(mr - tr) <= COLOR_TOLERANCE &&
+                Math.abs(mg - tg) <= COLOR_TOLERANCE &&
+                Math.abs(mb - tb) <= COLOR_TOLERANCE
+              ) {
+                // Seamless texture tiling UVs
+                const u = Math.floor((x * scale) % 256);
+                const v = Math.floor((y * scale) % 256);
+                const texIdx = (v * 256 + u) * 4;
 
-              // Base tint shaded by Ambient Occlusion (Multiply)
-              const shadedR = cr * ao;
-              const shadedG = cg * ao;
-              const shadedB = cb * ao;
+                const trColor = texData[texIdx];
+                const tgColor = texData[texIdx + 1];
+                const tbColor = texData[texIdx + 2];
 
-              // Reflection Pass (Screen / Additive composite)
-              const refR = refPixels[i];
-              const refG = refPixels[i + 1];
-              const refB = refPixels[i + 2];
+                // AO Shading
+                const ao = aoPixels[i] / 255.0;
+                const shadedR = trColor * ao;
+                const shadedG = tgColor * ao;
+                const shadedB = tbColor * ao;
 
-              // Screen blend formula: 255 - (255 - base) * (255 - refl) / 255
-              out[i]     = 255 - ((255 - shadedR) * (255 - refR)) / 255;
-              out[i + 1] = 255 - ((255 - shadedG) * (255 - refG)) / 255;
-              out[i + 2] = 255 - ((255 - shadedB) * (255 - refB)) / 255;
-              out[i + 3] = 255;
+                // Screen reflection
+                const refR = refPixels[i];
+                const refG = refPixels[i + 1];
+                const refB = refPixels[i + 2];
+
+                out[i]     = 255 - ((255 - shadedR) * (255 - refR)) / 255;
+                out[i + 1] = 255 - ((255 - shadedG) * (255 - refG)) / 255;
+                out[i + 2] = 255 - ((255 - shadedB) * (255 - refB)) / 255;
+                out[i + 3] = 255;
+              }
             }
           }
         }
@@ -368,10 +480,69 @@
       ctx.putImageData(outImageData, 0, 0);
     }
 
-    function setupEvents() {
-      const targetName = document.getElementById('targetName');
-      const idDot = document.getElementById('idDot');
+    function identifyCategory(r, g, b) {
+      for (const [key, cat] of Object.entries(MATERIAL_CATALOG)) {
+        if (cat.matcher(r, g, b)) return { key, config: cat };
+      }
+      // Default fallback if clicked elsewhere
+      return {
+        key: 'generic',
+        config: {
+          title: 'Selected Surface',
+          items: [
+            { id: 'orig', name: 'Original Finish', sub: 'Baseline Architectural Render', isOriginal: true },
+            { id: 'gen_oak', name: 'Natural Oak', sub: 'Fine Grain Finish', textureCanvas: createWoodTexture(170, 138, 102, 130, 100, 75) },
+            { id: 'gen_dark', name: 'Dark Slate', sub: 'Mineral Finish', textureCanvas: createPlasterTexture(45, 45, 48) }
+          ]
+        }
+      };
+    }
 
+    function populateSidebar(catInfo, rgbKey) {
+      materialOptions.innerHTML = '';
+      targetName.textContent = catInfo.config.title;
+
+      const currentSelection = activeModifications.get(rgbKey);
+      const activeId = currentSelection ? currentSelection.id : 'orig';
+
+      catInfo.config.items.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = `material-card ${item.id === activeId ? 'active' : ''}`;
+
+        const preview = document.createElement('div');
+        preview.className = 'thumb-preview';
+        if (item.isOriginal) {
+          preview.style.background = '#333';
+          preview.style.backgroundImage = 'radial-gradient(circle, #555 10%, transparent 10%)';
+          preview.style.backgroundSize = '8px 8px';
+        } else if (item.textureCanvas) {
+          preview.style.backgroundImage = `url(${item.textureCanvas.toDataURL()})`;
+        }
+
+        const info = document.createElement('div');
+        info.className = 'mat-info';
+        info.innerHTML = `<h4>${item.name}</h4><p>${item.sub}</p>`;
+
+        card.appendChild(preview);
+        card.appendChild(info);
+
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.material-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+
+          if (item.isOriginal) {
+            activeModifications.delete(rgbKey);
+          } else {
+            activeModifications.set(rgbKey, item);
+          }
+          render();
+        });
+
+        materialOptions.appendChild(card);
+      });
+    }
+
+    function setupEvents() {
       canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -380,41 +551,25 @@
         const x = Math.floor((e.clientX - rect.left) * scaleX);
         const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-        const index = (y * imgW + x) * 4;
-        const r = idPixels[index];
-        const g = idPixels[index + 1];
-        const b = idPixels[index + 2];
+        const idx = (y * imgW + x) * 4;
+        const r = idPixels[idx];
+        const g = idPixels[idx + 1];
+        const b = idPixels[idx + 2];
 
-        currentSelectedRGB = `${r},${g},${b}`;
-        idDot.style.background = `rgb(${currentSelectedRGB})`;
-        targetName.textContent = `Zone (${r}, ${g}, ${b})`;
+        const rgbKey = `${r},${g},${b}`;
+        idDot.style.background = `rgb(${rgbKey})`;
+
+        const category = identifyCategory(r, g, b);
+        activeZone = { rgbKey, category };
+
+        populateSidebar(category, rgbKey);
       });
 
-      document.querySelectorAll('.swatch-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          if (!currentSelectedRGB) {
-            alert('Click a surface on the render first.');
-            return;
-          }
-
-          document.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-
-          const r = Number(btn.getAttribute('data-r'));
-          const g = Number(btn.getAttribute('data-g'));
-          const b = Number(btn.getAttribute('data-b'));
-
-          activeModifications.set(currentSelectedRGB, { r, g, b });
-          render();
-        });
-      });
-
-      document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('resetAllBtn').addEventListener('click', () => {
         activeModifications.clear();
-        currentSelectedRGB = null;
-        idDot.style.background = 'transparent';
-        targetName.textContent = 'None selected';
-        document.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('active'));
+        if (activeZone) {
+          populateSidebar(activeZone.category, activeZone.rgbKey);
+        }
         render();
       });
     }
