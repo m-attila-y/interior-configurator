@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interior Material Configurator</title>
+  <style>
+    :root {
+      --bg-dark: #121212;
+      --panel-bg: rgba(22, 22, 24, 0.85);
+      --border-color: rgba(255, 255, 255, 0.12);
+      --text-main: #f5f5f7;
+      --text-sub: #a1a1a6;
+      --accent: #2997ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+    }
+
+    /* Viewport Area */
+    #stage-container {
+      position: relative;
+      flex: 1;
+      height: 100%;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    canvas {
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      max-width: 100%;
+      max-height: 100%;
+      cursor: crosshair;
+      object-fit: contain;
+    }
+
+    /* Top Hint Overlay */
+    .hint-banner {
+      position: absolute;
+      top: 20px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+      color: var(--text-sub);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .hint-banner span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Floating UI Controls */
+    #sidebar {
+      width: 320px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid var(--border-color);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      z-index: 20;
+    }
+
+    h2 {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    .status-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    .status-card p {
+      margin-bottom: 6px;
+      color: var(--text-sub);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .id-preview-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.4);
+      display: inline-block;
+    }
+
+    .swatches-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .swatch-btn {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .swatch-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .swatch-btn.active {
+      border-color: #fff;
+    }
+
+    .actions {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stage-container">
+    <div class="hint-banner">
+      Click any surface (floor, wall, cabinets) to customize finish
+    </div>
+    <canvas id="renderCanvas"></canvas>
+  </div>
+
+  <aside id="sidebar">
+    <div>
+      <h2>Material Configurator</h2>
+    </div>
+
+    <div class="status-card">
+      <p>Active Surface</p>
+      <div class="status-badge">
+        <span id="idDot" class="id-preview-dot" style="background: transparent;"></span>
+        <span id="targetName">None selected</span>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="font-size: 13px; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Presets</h3>
+      <div class="swatches-grid">
+        <button class="swatch-btn" style="background: #2b2520;" data-color="rgba(43, 37, 32, 0.85)" title="Smoked Dark Walnut"></button>
+        <button class="swatch-btn" style="background: #9d8065;" data-color="rgba(157, 128, 101, 0.75)" title="Natural Oak"></button>
+        <button class="swatch-btn" style="background: #ded7ce;" data-color="rgba(222, 215, 206, 0.85)" title="White Washed Nordic"></button>
+        <button class="swatch-btn" style="background: #474b4e;" data-color="rgba(71, 75, 78, 0.85)" title="Anthracite Slate"></button>
+        <button class="swatch-btn" style="background: #8b3a2b;" data-color="rgba(139, 58, 43, 0.8)" title="Terracotta / Burgundy"></button>
+        <button class="swatch-btn" style="background: #2e3a35;" data-color="rgba(46, 58, 53, 0.85)" title="Forest Olive"></button>
+        <button class="swatch-btn" style="background: #eae9e5;" data-color="rgba(234, 233, 229, 0.85)" title="Warm Plaster / Calacatta"></button>
+        <button class="swatch-btn" style="background: #1e1e20;" data-color="rgba(30, 30, 32, 0.9)" title="Matte Black"></button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="resetBtn">Reset All to Original</button>
+    </div>
+  </aside>
+
+  <script>
+    const CONFIG = {
+      images: {
+        beauty: 'Scene 13_3.jpg',
+        ao: 'Scene 13_3_AO.jpg',
+        materialId: 'Scene 13_3_MaterialID.jpg',
+        reflection: 'Scene 13_3_Reflection.jpg'
+      },
+      // Sensitivity threshold for color matching in the ID pass
+      tolerance: 16
+    };
+
+    const canvas = document.getElementById('renderCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Off-screen canvas to hold the raw ID pass for color-picking & masking
+    const idCanvas = document.createElement('canvas');
+    const idCtx = idCanvas.getContext('2d');
+
+    // Dynamic layer modifications: Key = "r,g,b" string, Value = Color string
+    const activeModifications = new Map();
+    let currentSelectedRGB = null;
+
+    const loadedImages = {};
+
+    function loadAllImages() {
+      const entries = Object.entries(CONFIG.images);
+      let loadedCount = 0;
+
+      entries.forEach(([key, src]) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = src;
+        img.onload = () => {
+          loadedImages[key] = img;
+          loadedCount++;
+          if (loadedCount === entries.length) {
+            initApp();
+          }
+        };
+      });
+    }
+
+    function initApp() {
+      const w = loadedImages.beauty.naturalWidth;
+      const h = loadedImages.beauty.naturalHeight;
+
+      canvas.width = w;
+      canvas.height = h;
+      idCanvas.width = w;
+      idCanvas.height = h;
+
+      // Draw the ID pass into the hidden memory canvas
+      idCtx.drawImage(loadedImages.materialId, 0, 0, w, h);
+
+      render();
+      setupInteractions();
+    }
+
+    function render() {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // 1. Draw base render
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(loadedImages.beauty, 0, 0, w, h);
+
+      // If no modifications have been made, exit early
+      if (activeModifications.size === 0) return;
+
+      const idData = idCtx.getImageData(0, 0, w, h).data;
+
+      // Create an offscreen buffer to composite active modifications
+      const overlayCanvas = document.createElement('canvas');
+      overlayCanvas.width = w;
+      overlayCanvas.height = h;
+      const overlayCtx = overlayCanvas.getContext('2d');
+
+      const maskImgData = overlayCtx.createImageData(w, h);
+      const maskPixels = maskImgData.data;
+
+      // Generate mask based on registered material modifications
+      for (const [rgbKey, color] of activeModifications.entries()) {
+        const [targetR, targetG, targetB] = rgbKey.split(',').map(Number);
+        
+        // Parse applied color values
+        const dummy = document.createElement('div');
+        dummy.style.color = color;
+        document.body.appendChild(dummy);
+        const resolved = getComputedStyle(dummy).color;
+        document.body.removeChild(dummy);
+        const [appR, appG, appB] = resolved.match(/\d+/g).map(Number);
+
+        for (let i = 0; i < idData.length; i += 4) {
+          const r = idData[i];
+          const g = idData[i + 1];
+          const b = idData[i + 2];
+
+          // Check if pixel belongs to target ID
+          if (
+            Math.abs(r - targetR) <= CONFIG.tolerance &&
+            Math.abs(g - targetG) <= CONFIG.tolerance &&
+            Math.abs(b - targetB) <= CONFIG.tolerance
+          ) {
+            maskPixels[i] = appR;
+            maskPixels[i + 1] = appG;
+            maskPixels[i + 2] = appB;
+            maskPixels[i + 3] = 255;
+          }
+        }
+      }
+
+      overlayCtx.putImageData(maskImgData, 0, 0);
+
+      // Multiply Ambient Occlusion over the tinted regions
+      overlayCtx.globalCompositeOperation = 'multiply';
+      overlayCtx.drawImage(loadedImages.ao, 0, 0, w, h);
+
+      // Re-mask to prevent AO from spilling outside the modified zones
+      overlayCtx.globalCompositeOperation = 'destination-in';
+      overlayCtx.putImageData(maskImgData, 0, 0);
+
+      // Add Reflection Pass back over highlights
+      overlayCtx.globalCompositeOperation = 'screen';
+      overlayCtx.drawImage(loadedImages.reflection, 0, 0, w, h);
+
+      // Composite the modified surface back onto the beauty render
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(overlayCanvas, 0, 0);
+    }
+
+    function setupInteractions() {
+      const targetName = document.getElementById('targetName');
+      const idDot = document.getElementById('idDot');
+
+      // Click to select region
+      canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = Math.floor((e.clientX - rect.left) * scaleX);
+        const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+        const pixel = idCtx.getImageData(x, y, 1, 1).data;
+        currentSelectedRGB = `${pixel[0]},${pixel[1]},${pixel[2]}`;
+
+        idDot.style.background = `rgb(${currentSelectedRGB})`;
+        targetName.textContent = `Zone (${pixel[0]}, ${pixel[1]},${pixel[2]})`;
+      });
+
+      // Swatch selection
+      document.querySelectorAll('.swatch-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!currentSelectedRGB) {
+            alert('Please click an area on the image first.');
+            return;
+          }
+
+          document.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          const color = btn.getAttribute('data-color');
+          activeModifications.set(currentSelectedRGB, color);
+          render();
+        });
+      });
+
+      // Reset
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        activeModifications.clear();
+        currentSelectedRGB = null;
+        idDot.style.background = 'transparent';
+        targetName.textContent = 'None selected';
+        document.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('active'));
+        render();
+      });
+    }
+
+    loadAllImages();
+  </script>
+</body>
+</html>
