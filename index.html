@@ -52,7 +52,7 @@
       object-fit: contain;
     }
 
-    /* Banners & Diagnostics */
+    /* Diagnostic & Hint Banners */
     .hint-banner {
       position: absolute;
       top: 20px;
@@ -67,10 +67,6 @@
       pointer-events: none;
       z-index: 10;
       transition: opacity 0.3s ease;
-    }
-    .hint-banner span {
-      color: var(--accent);
-      font-weight: 600;
     }
 
     #error-log {
@@ -94,7 +90,7 @@
       font-size: 14px;
     }
 
-    /* Floating UI Controls */
+    /* Sidebar UI Controls */
     #sidebar {
       width: 320px;
       background: var(--panel-bg);
@@ -194,9 +190,7 @@
 <body>
 
   <div id="stage-container">
-    <div class="hint-banner" id="hintBanner">
-      Loading render passes...
-    </div>
+    <div class="hint-banner" id="hintBanner">Loading render passes...</div>
     <div id="error-log">
       <h4>Image Load Diagnostic</h4>
       <div id="error-details"></div>
@@ -237,31 +231,30 @@
   </aside>
 
   <script>
-    // Asset candidate lists to prevent 404 mismatch errors on GitHub Pages
     const ASSET_CANDIDATES = {
       beauty: [
-        './Scene%2013_3.jpg',
-        './Scene 13_3.jpg',
-        './Scene%2013_3.jpeg',
-        './Scene 13_3.png'
+        'Scene%2013_3.png',
+        'Scene 13_3.png',
+        'Scene%2013_3.jpg',
+        'Scene 13_3.jpg'
       ],
       ao: [
-        './Scene%2013_3_AO.jpg',
-        './Scene 13_3_AO.jpg',
-        './Scene%2013_3_AO.jpeg',
-        './Scene 13_3_AO.png'
+        'Scene%2013_3_AO.png',
+        'Scene 13_3_AO.png',
+        'Scene%2013_3_AO.jpg',
+        'Scene 13_3_AO.jpg'
       ],
       materialId: [
-        './Scene%2013_3_MaterialID.jpg',
-        './Scene 13_3_MaterialID.jpg',
-        './Scene%2013_3_MaterialID.jpeg',
-        './Scene 13_3_MaterialID.png'
+        'Scene%2013_3_MaterialID.png',
+        'Scene 13_3_MaterialID.png',
+        'Scene%2013_3_MaterialID.jpg',
+        'Scene 13_3_MaterialID.jpg'
       ],
       reflection: [
-        './Scene%2013_3_Reflection.jpg',
-        './Scene 13_3_Reflection.jpg',
-        './Scene%2013_3_Reflection.jpeg',
-        './Scene 13_3_Reflection.png'
+        'Scene%2013_3_Reflection.png',
+        'Scene 13_3_Reflection.png',
+        'Scene%2013_3_Reflection.jpg',
+        'Scene 13_3_Reflection.jpg'
       ]
     };
 
@@ -279,13 +272,12 @@
     const loadedImages = {};
     const COLOR_TOLERANCE = 18;
 
-    // Helper: Attempts to load candidate URLs sequentially
     function loadAssetWithFallbacks(candidates) {
       return new Promise((resolve, reject) => {
         let index = 0;
         function tryNext() {
           if (index >= candidates.length) {
-            reject(new Error(`Failed to load from options: ${candidates.join(', ')}`));
+            reject(new Error(`Failed to load asset: checked ${candidates.join(', ')}`));
             return;
           }
           const img = new Image();
@@ -316,8 +308,7 @@
       if (errors.length > 0) {
         hintBanner.style.display = 'none';
         errorLog.style.display = 'block';
-        errorDetails.innerHTML = errors.map(e => `<p style="margin-bottom:6px;">❌ ${e}</p>`).join('') +
-          '<p style="margin-top:10px; color:#aaa;">Please ensure your files are in the repository root alongside index.html and check case-sensitivity.</p>';
+        errorDetails.innerHTML = errors.map(e => `<p style="margin-bottom:6px;">❌ ${e}</p>`).join('');
         return;
       }
 
@@ -329,7 +320,6 @@
       idCanvas.width = w;
       idCanvas.height = h;
 
-      // Draw ID map into offscreen buffer
       idCtx.drawImage(loadedImages.materialId, 0, 0, w, h);
 
       hintBanner.textContent = 'Click any surface (floor, wall, cabinets) to customize finish';
@@ -341,28 +331,26 @@
       const w = canvas.width;
       const h = canvas.height;
 
-      // Draw beauty base
+      // 1. Draw original base beauty pass
       ctx.globalCompositeOperation = 'source-over';
+      ctx.clearRect(0, 0, w, h);
       ctx.drawImage(loadedImages.beauty, 0, 0, w, h);
 
       if (activeModifications.size === 0) return;
 
       const idData = idCtx.getImageData(0, 0, w, h).data;
 
-      // Working offscreen layer
-      const workCanvas = document.createElement('canvas');
-      workCanvas.width = w;
-      workCanvas.height = h;
-      const workCtx = workCanvas.getContext('2d');
+      // Step A: Generate the isolated tint mask (Alpha = 0 for untouched areas)
+      const tintCanvas = document.createElement('canvas');
+      tintCanvas.width = w;
+      tintCanvas.height = h;
+      const tintCtx = tintCanvas.getContext('2d');
+      const tintImgData = tintCtx.createImageData(w, h);
+      const tintPixels = tintImgData.data;
 
-      const maskImgData = workCtx.createImageData(w, h);
-      const maskPixels = maskImgData.data;
-
-      // Build colored mask from active selections
       for (const [rgbKey, color] of activeModifications.entries()) {
         const [tr, tg, tb] = rgbKey.split(',').map(Number);
 
-        // Resolve hex/rgba to numeric RGB
         const temp = document.createElement('div');
         temp.style.color = color;
         document.body.appendChild(temp);
@@ -380,31 +368,49 @@
             Math.abs(g - tg) <= COLOR_TOLERANCE &&
             Math.abs(b - tb) <= COLOR_TOLERANCE
           ) {
-            maskPixels[i] = cr;
-            maskPixels[i + 1] = cg;
-            maskPixels[i + 2] = cb;
-            maskPixels[i + 3] = 255;
+            tintPixels[i] = cr;
+            tintPixels[i + 1] = cg;
+            tintPixels[i + 2] = cb;
+            tintPixels[i + 3] = 255;
           }
         }
       }
+      tintCtx.putImageData(tintImgData, 0, 0);
 
-      workCtx.putImageData(maskImgData, 0, 0);
+      // Step B: Build shaded composite strictly inside the modified mask
+      const shadeCanvas = document.createElement('canvas');
+      shadeCanvas.width = w;
+      shadeCanvas.height = h;
+      const shadeCtx = shadeCanvas.getContext('2d');
 
-      // Multiply Ambient Occlusion over modified regions
-      workCtx.globalCompositeOperation = 'multiply';
-      workCtx.drawImage(loadedImages.ao, 0, 0, w, h);
+      // Draw color tint
+      shadeCtx.drawImage(tintCanvas, 0, 0);
 
-      // Mask precisely to keep unaffected areas clear
-      workCtx.globalCompositeOperation = 'destination-in';
-      workCtx.putImageData(maskImgData, 0, 0);
+      // Multiply Ambient Occlusion over tint
+      shadeCtx.globalCompositeOperation = 'multiply';
+      shadeCtx.drawImage(loadedImages.ao, 0, 0);
 
-      // Add Reflection Pass highlights
-      workCtx.globalCompositeOperation = 'screen';
-      workCtx.drawImage(loadedImages.reflection, 0, 0, w, h);
+      // Step C: Crop Reflection highlights to mask boundary
+      const reflCanvas = document.createElement('canvas');
+      reflCanvas.width = w;
+      reflCanvas.height = h;
+      const reflCtx = reflCanvas.getContext('2d');
 
-      // Composite onto final canvas
+      reflCtx.drawImage(loadedImages.reflection, 0, 0);
+      reflCtx.globalCompositeOperation = 'destination-in';
+      reflCtx.drawImage(tintCanvas, 0, 0);
+
+      // Add reflections to shaded tint
+      shadeCtx.globalCompositeOperation = 'screen';
+      shadeCtx.drawImage(reflCanvas, 0, 0);
+
+      // Final cutoff to ensure zero bleed into unselected pixels
+      shadeCtx.globalCompositeOperation = 'destination-in';
+      shadeCtx.drawImage(tintCanvas, 0, 0);
+
+      // 2. Composite modified layers onto the original render
       ctx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(workCanvas, 0, 0);
+      ctx.drawImage(shadeCanvas, 0, 0);
     }
 
     function setupEvents() {
