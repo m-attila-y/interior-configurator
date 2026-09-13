@@ -32,7 +32,6 @@
       display: flex;
     }
 
-    /* Viewport Area */
     #stage-container {
       position: relative;
       flex: 1;
@@ -52,7 +51,6 @@
       object-fit: contain;
     }
 
-    /* Diagnostic & Hint Banners */
     .hint-banner {
       position: absolute;
       top: 20px;
@@ -66,7 +64,6 @@
       color: var(--text-sub);
       pointer-events: none;
       z-index: 10;
-      transition: opacity 0.3s ease;
     }
 
     #error-log {
@@ -90,7 +87,6 @@
       font-size: 14px;
     }
 
-    /* Sidebar UI Controls */
     #sidebar {
       width: 320px;
       background: var(--panel-bg);
@@ -214,14 +210,14 @@
     <div>
       <h3 style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Presets</h3>
       <div class="swatches-grid">
-        <button class="swatch-btn" style="background: #2b2520;" data-color="rgba(43, 37, 32, 0.85)" title="Smoked Dark Walnut"></button>
-        <button class="swatch-btn" style="background: #a48261;" data-color="rgba(164, 130, 97, 0.75)" title="Natural Oak"></button>
-        <button class="swatch-btn" style="background: #ded7ce;" data-color="rgba(222, 215, 206, 0.85)" title="White Washed Nordic"></button>
-        <button class="swatch-btn" style="background: #474b4e;" data-color="rgba(71, 75, 78, 0.85)" title="Anthracite Slate"></button>
-        <button class="swatch-btn" style="background: #8b3a2b;" data-color="rgba(139, 58, 43, 0.8)" title="Terracotta Finish"></button>
-        <button class="swatch-btn" style="background: #2e3a35;" data-color="rgba(46, 58, 53, 0.85)" title="Forest Olive"></button>
-        <button class="swatch-btn" style="background: #eae9e5;" data-color="rgba(234, 233, 229, 0.85)" title="Warm Plaster / Calacatta"></button>
-        <button class="swatch-btn" style="background: #1e1e20;" data-color="rgba(30, 30, 32, 0.9)" title="Matte Charcoal"></button>
+        <button class="swatch-btn" style="background: #2b2520;" data-r="43" data-g="37" data-b="32" title="Smoked Dark Walnut"></button>
+        <button class="swatch-btn" style="background: #a48261;" data-r="164" data-g="130" data-b="97" title="Natural Oak"></button>
+        <button class="swatch-btn" style="background: #ded7ce;" data-r="222" data-g="215" data-b="206" title="White Washed Nordic"></button>
+        <button class="swatch-btn" style="background: #474b4e;" data-r="71" data-g="75" data-b="78" title="Anthracite Slate"></button>
+        <button class="swatch-btn" style="background: #8b3a2b;" data-r="139" data-g="58" data-b="43" title="Terracotta Finish"></button>
+        <button class="swatch-btn" style="background: #2e3a35;" data-r="46" data-g="58" data-b="53" title="Forest Olive"></button>
+        <button class="swatch-btn" style="background: #eae9e5;" data-r="234" data-g="233" data-b="229" title="Warm Plaster / Calacatta"></button>
+        <button class="swatch-btn" style="background: #1e1e20;" data-r="30" data-g="30" data-b="32" title="Matte Charcoal"></button>
       </div>
     </div>
 
@@ -232,30 +228,10 @@
 
   <script>
     const ASSET_CANDIDATES = {
-      beauty: [
-        'Scene%2013_3.png',
-        'Scene 13_3.png',
-        'Scene%2013_3.jpg',
-        'Scene 13_3.jpg'
-      ],
-      ao: [
-        'Scene%2013_3_AO.png',
-        'Scene 13_3_AO.png',
-        'Scene%2013_3_AO.jpg',
-        'Scene 13_3_AO.jpg'
-      ],
-      materialId: [
-        'Scene%2013_3_MaterialID.png',
-        'Scene 13_3_MaterialID.png',
-        'Scene%2013_3_MaterialID.jpg',
-        'Scene 13_3_MaterialID.jpg'
-      ],
-      reflection: [
-        'Scene%2013_3_Reflection.png',
-        'Scene 13_3_Reflection.png',
-        'Scene%2013_3_Reflection.jpg',
-        'Scene 13_3_Reflection.jpg'
-      ]
+      beauty: ['Scene%2013_3.png', 'Scene 13_3.png', 'Scene%2013_3.jpg', 'Scene 13_3.jpg'],
+      ao: ['Scene%2013_3_AO.png', 'Scene 13_3_AO.png', 'Scene%2013_3_AO.jpg', 'Scene 13_3_AO.jpg'],
+      materialId: ['Scene%2013_3_MaterialID.png', 'Scene 13_3_MaterialID.png', 'Scene%2013_3_MaterialID.jpg', 'Scene 13_3_MaterialID.jpg'],
+      reflection: ['Scene%2013_3_Reflection.png', 'Scene 13_3_Reflection.png', 'Scene%2013_3_Reflection.jpg', 'Scene 13_3_Reflection.jpg']
     };
 
     const canvas = document.getElementById('renderCanvas');
@@ -264,13 +240,23 @@
     const errorLog = document.getElementById('error-log');
     const errorDetails = document.getElementById('error-details');
 
-    const idCanvas = document.createElement('canvas');
-    const idCtx = idCanvas.getContext('2d');
-
-    const activeModifications = new Map();
+    const activeModifications = new Map(); // Key: "r,g,b", Value: {r, g, b}
     let currentSelectedRGB = null;
     const loadedImages = {};
     const COLOR_TOLERANCE = 18;
+
+    // Pixel buffers
+    let beautyPixels, aoPixels, idPixels, refPixels;
+    let imgW, imgH;
+
+    function getBuffer(img) {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const cx = c.getContext('2d');
+      cx.drawImage(img, 0, 0);
+      return cx.getImageData(0, 0, c.width, c.height).data;
+    }
 
     function loadAssetWithFallbacks(candidates) {
       return new Promise((resolve, reject) => {
@@ -312,15 +298,17 @@
         return;
       }
 
-      const w = loadedImages.beauty.naturalWidth;
-      const h = loadedImages.beauty.naturalHeight;
+      imgW = loadedImages.beauty.naturalWidth;
+      imgH = loadedImages.beauty.naturalHeight;
 
-      canvas.width = w;
-      canvas.height = h;
-      idCanvas.width = w;
-      idCanvas.height = h;
+      canvas.width = imgW;
+      canvas.height = imgH;
 
-      idCtx.drawImage(loadedImages.materialId, 0, 0, w, h);
+      // Extract pixel data once for optimal performance
+      beautyPixels = getBuffer(loadedImages.beauty);
+      aoPixels = getBuffer(loadedImages.ao);
+      idPixels = getBuffer(loadedImages.materialId);
+      refPixels = getBuffer(loadedImages.reflection);
 
       hintBanner.textContent = 'Click any surface (floor, wall, cabinets) to customize finish';
       render();
@@ -328,89 +316,56 @@
     }
 
     function render() {
-      const w = canvas.width;
-      const h = canvas.height;
+      // Create output image data buffer
+      const outImageData = ctx.createImageData(imgW, imgH);
+      const out = outImageData.data;
 
-      // 1. Draw original base beauty pass
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(loadedImages.beauty, 0, 0, w, h);
+      // 1. Copy original beauty pass completely
+      out.set(beautyPixels);
 
-      if (activeModifications.size === 0) return;
+      // 2. If there are modifications, update ONLY matching pixels
+      if (activeModifications.size > 0) {
+        for (const [rgbKey, color] of activeModifications.entries()) {
+          const [tr, tg, tb] = rgbKey.split(',').map(Number);
+          const cr = color.r;
+          const cg = color.g;
+          const cb = color.b;
 
-      const idData = idCtx.getImageData(0, 0, w, h).data;
+          for (let i = 0; i < idPixels.length; i += 4) {
+            const mr = idPixels[i];
+            const mg = idPixels[i + 1];
+            const mb = idPixels[i + 2];
 
-      // Step A: Generate the isolated tint mask (Alpha = 0 for untouched areas)
-      const tintCanvas = document.createElement('canvas');
-      tintCanvas.width = w;
-      tintCanvas.height = h;
-      const tintCtx = tintCanvas.getContext('2d');
-      const tintImgData = tintCtx.createImageData(w, h);
-      const tintPixels = tintImgData.data;
+            // Match Material ID zone
+            if (
+              Math.abs(mr - tr) <= COLOR_TOLERANCE &&
+              Math.abs(mg - tg) <= COLOR_TOLERANCE &&
+              Math.abs(mb - tb) <= COLOR_TOLERANCE
+            ) {
+              // AO factor normalized (0.0 - 1.0)
+              const ao = aoPixels[i] / 255.0;
 
-      for (const [rgbKey, color] of activeModifications.entries()) {
-        const [tr, tg, tb] = rgbKey.split(',').map(Number);
+              // Base tint shaded by Ambient Occlusion (Multiply)
+              const shadedR = cr * ao;
+              const shadedG = cg * ao;
+              const shadedB = cb * ao;
 
-        const temp = document.createElement('div');
-        temp.style.color = color;
-        document.body.appendChild(temp);
-        const resolved = getComputedStyle(temp).color;
-        document.body.removeChild(temp);
-        const [cr, cg, cb] = resolved.match(/\d+/g).map(Number);
+              // Reflection Pass (Screen / Additive composite)
+              const refR = refPixels[i];
+              const refG = refPixels[i + 1];
+              const refB = refPixels[i + 2];
 
-        for (let i = 0; i < idData.length; i += 4) {
-          const r = idData[i];
-          const g = idData[i + 1];
-          const b = idData[i + 2];
-
-          if (
-            Math.abs(r - tr) <= COLOR_TOLERANCE &&
-            Math.abs(g - tg) <= COLOR_TOLERANCE &&
-            Math.abs(b - tb) <= COLOR_TOLERANCE
-          ) {
-            tintPixels[i] = cr;
-            tintPixels[i + 1] = cg;
-            tintPixels[i + 2] = cb;
-            tintPixels[i + 3] = 255;
+              // Screen blend formula: 255 - (255 - base) * (255 - refl) / 255
+              out[i]     = 255 - ((255 - shadedR) * (255 - refR)) / 255;
+              out[i + 1] = 255 - ((255 - shadedG) * (255 - refG)) / 255;
+              out[i + 2] = 255 - ((255 - shadedB) * (255 - refB)) / 255;
+              out[i + 3] = 255;
+            }
           }
         }
       }
-      tintCtx.putImageData(tintImgData, 0, 0);
 
-      // Step B: Build shaded composite strictly inside the modified mask
-      const shadeCanvas = document.createElement('canvas');
-      shadeCanvas.width = w;
-      shadeCanvas.height = h;
-      const shadeCtx = shadeCanvas.getContext('2d');
-
-      // Draw color tint
-      shadeCtx.drawImage(tintCanvas, 0, 0);
-
-      // Multiply Ambient Occlusion over tint
-      shadeCtx.globalCompositeOperation = 'multiply';
-      shadeCtx.drawImage(loadedImages.ao, 0, 0);
-
-      // Step C: Crop Reflection highlights to mask boundary
-      const reflCanvas = document.createElement('canvas');
-      reflCanvas.width = w;
-      reflCanvas.height = h;
-      const reflCtx = reflCanvas.getContext('2d');
-
-      reflCtx.drawImage(loadedImages.reflection, 0, 0);
-      reflCtx.globalCompositeOperation = 'destination-in';
-      reflCtx.drawImage(tintCanvas, 0, 0);
-
-      // Add reflections to shaded tint
-      shadeCtx.globalCompositeOperation = 'screen';
-      shadeCtx.drawImage(reflCanvas, 0, 0);
-
-      // Final cutoff to ensure zero bleed into unselected pixels
-      shadeCtx.globalCompositeOperation = 'destination-in';
-      shadeCtx.drawImage(tintCanvas, 0, 0);
-
-      // 2. Composite modified layers onto the original render
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(shadeCanvas, 0, 0);
+      ctx.putImageData(outImageData, 0, 0);
     }
 
     function setupEvents() {
@@ -425,11 +380,14 @@
         const x = Math.floor((e.clientX - rect.left) * scaleX);
         const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-        const pixel = idCtx.getImageData(x, y, 1, 1).data;
-        currentSelectedRGB = `${pixel[0]},${pixel[1]},${pixel[2]}`;
+        const index = (y * imgW + x) * 4;
+        const r = idPixels[index];
+        const g = idPixels[index + 1];
+        const b = idPixels[index + 2];
 
+        currentSelectedRGB = `${r},${g},${b}`;
         idDot.style.background = `rgb(${currentSelectedRGB})`;
-        targetName.textContent = `Zone (${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+        targetName.textContent = `Zone (${r}, ${g}, ${b})`;
       });
 
       document.querySelectorAll('.swatch-btn').forEach((btn) => {
@@ -442,8 +400,11 @@
           document.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
 
-          const color = btn.getAttribute('data-color');
-          activeModifications.set(currentSelectedRGB, color);
+          const r = Number(btn.getAttribute('data-r'));
+          const g = Number(btn.getAttribute('data-g'));
+          const b = Number(btn.getAttribute('data-b'));
+
+          activeModifications.set(currentSelectedRGB, { r, g, b });
           render();
         });
       });
