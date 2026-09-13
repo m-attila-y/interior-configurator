@@ -7,11 +7,12 @@
   <style>
     :root {
       --bg-dark: #121212;
-      --panel-bg: rgba(22, 22, 24, 0.85);
+      --panel-bg: rgba(22, 22, 24, 0.88);
       --border-color: rgba(255, 255, 255, 0.12);
       --text-main: #f5f5f7;
       --text-sub: #a1a1a6;
       --accent: #2997ff;
+      --danger: #ff453a;
     }
 
     * {
@@ -51,7 +52,7 @@
       object-fit: contain;
     }
 
-    /* Top Hint Overlay */
+    /* Banners & Diagnostics */
     .hint-banner {
       position: absolute;
       top: 20px;
@@ -65,10 +66,32 @@
       color: var(--text-sub);
       pointer-events: none;
       z-index: 10;
+      transition: opacity 0.3s ease;
     }
     .hint-banner span {
       color: var(--accent);
       font-weight: 600;
+    }
+
+    #error-log {
+      display: none;
+      position: absolute;
+      top: 70px;
+      max-width: 80%;
+      background: rgba(40, 10, 10, 0.9);
+      border: 1px solid var(--danger);
+      color: #fff;
+      padding: 16px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    #error-log h4 {
+      color: var(--danger);
+      margin-bottom: 6px;
+      font-size: 14px;
     }
 
     /* Floating UI Controls */
@@ -160,6 +183,7 @@
       font-weight: 500;
       cursor: pointer;
       transition: background 0.15s ease;
+      text-align: center;
     }
 
     .btn:hover {
@@ -170,8 +194,12 @@
 <body>
 
   <div id="stage-container">
-    <div class="hint-banner">
-      Click any surface (floor, wall, cabinets) to customize finish
+    <div class="hint-banner" id="hintBanner">
+      Loading render passes...
+    </div>
+    <div id="error-log">
+      <h4>Image Load Diagnostic</h4>
+      <div id="error-details"></div>
     </div>
     <canvas id="renderCanvas"></canvas>
   </div>
@@ -190,16 +218,16 @@
     </div>
 
     <div>
-      <h3 style="font-size: 13px; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Presets</h3>
+      <h3 style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Presets</h3>
       <div class="swatches-grid">
         <button class="swatch-btn" style="background: #2b2520;" data-color="rgba(43, 37, 32, 0.85)" title="Smoked Dark Walnut"></button>
-        <button class="swatch-btn" style="background: #9d8065;" data-color="rgba(157, 128, 101, 0.75)" title="Natural Oak"></button>
+        <button class="swatch-btn" style="background: #a48261;" data-color="rgba(164, 130, 97, 0.75)" title="Natural Oak"></button>
         <button class="swatch-btn" style="background: #ded7ce;" data-color="rgba(222, 215, 206, 0.85)" title="White Washed Nordic"></button>
         <button class="swatch-btn" style="background: #474b4e;" data-color="rgba(71, 75, 78, 0.85)" title="Anthracite Slate"></button>
-        <button class="swatch-btn" style="background: #8b3a2b;" data-color="rgba(139, 58, 43, 0.8)" title="Terracotta / Burgundy"></button>
+        <button class="swatch-btn" style="background: #8b3a2b;" data-color="rgba(139, 58, 43, 0.8)" title="Terracotta Finish"></button>
         <button class="swatch-btn" style="background: #2e3a35;" data-color="rgba(46, 58, 53, 0.85)" title="Forest Olive"></button>
         <button class="swatch-btn" style="background: #eae9e5;" data-color="rgba(234, 233, 229, 0.85)" title="Warm Plaster / Calacatta"></button>
-        <button class="swatch-btn" style="background: #1e1e20;" data-color="rgba(30, 30, 32, 0.9)" title="Matte Black"></button>
+        <button class="swatch-btn" style="background: #1e1e20;" data-color="rgba(30, 30, 32, 0.9)" title="Matte Charcoal"></button>
       </div>
     </div>
 
@@ -209,49 +237,90 @@
   </aside>
 
   <script>
-    const CONFIG = {
-      images: {
-        beauty: 'Scene 13_3.jpg',
-        ao: 'Scene 13_3_AO.jpg',
-        materialId: 'Scene 13_3_MaterialID.jpg',
-        reflection: 'Scene 13_3_Reflection.jpg'
-      },
-      // Sensitivity threshold for color matching in the ID pass
-      tolerance: 16
+    // Asset candidate lists to prevent 404 mismatch errors on GitHub Pages
+    const ASSET_CANDIDATES = {
+      beauty: [
+        './Scene%2013_3.jpg',
+        './Scene 13_3.jpg',
+        './Scene%2013_3.jpeg',
+        './Scene 13_3.png'
+      ],
+      ao: [
+        './Scene%2013_3_AO.jpg',
+        './Scene 13_3_AO.jpg',
+        './Scene%2013_3_AO.jpeg',
+        './Scene 13_3_AO.png'
+      ],
+      materialId: [
+        './Scene%2013_3_MaterialID.jpg',
+        './Scene 13_3_MaterialID.jpg',
+        './Scene%2013_3_MaterialID.jpeg',
+        './Scene 13_3_MaterialID.png'
+      ],
+      reflection: [
+        './Scene%2013_3_Reflection.jpg',
+        './Scene 13_3_Reflection.jpg',
+        './Scene%2013_3_Reflection.jpeg',
+        './Scene 13_3_Reflection.png'
+      ]
     };
 
     const canvas = document.getElementById('renderCanvas');
     const ctx = canvas.getContext('2d');
+    const hintBanner = document.getElementById('hintBanner');
+    const errorLog = document.getElementById('error-log');
+    const errorDetails = document.getElementById('error-details');
 
-    // Off-screen canvas to hold the raw ID pass for color-picking & masking
     const idCanvas = document.createElement('canvas');
     const idCtx = idCanvas.getContext('2d');
 
-    // Dynamic layer modifications: Key = "r,g,b" string, Value = Color string
     const activeModifications = new Map();
     let currentSelectedRGB = null;
-
     const loadedImages = {};
+    const COLOR_TOLERANCE = 18;
 
-    function loadAllImages() {
-      const entries = Object.entries(CONFIG.images);
-      let loadedCount = 0;
-
-      entries.forEach(([key, src]) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = src;
-        img.onload = () => {
-          loadedImages[key] = img;
-          loadedCount++;
-          if (loadedCount === entries.length) {
-            initApp();
+    // Helper: Attempts to load candidate URLs sequentially
+    function loadAssetWithFallbacks(candidates) {
+      return new Promise((resolve, reject) => {
+        let index = 0;
+        function tryNext() {
+          if (index >= candidates.length) {
+            reject(new Error(`Failed to load from options: ${candidates.join(', ')}`));
+            return;
           }
-        };
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = () => {
+            index++;
+            tryNext();
+          };
+          img.src = candidates[index];
+        }
+        tryNext();
       });
     }
 
-    function initApp() {
+    async function init() {
+      const keys = Object.keys(ASSET_CANDIDATES);
+      const errors = [];
+
+      for (const key of keys) {
+        try {
+          loadedImages[key] = await loadAssetWithFallbacks(ASSET_CANDIDATES[key]);
+        } catch (err) {
+          errors.push(err.message);
+        }
+      }
+
+      if (errors.length > 0) {
+        hintBanner.style.display = 'none';
+        errorLog.style.display = 'block';
+        errorDetails.innerHTML = errors.map(e => `<p style="margin-bottom:6px;">❌ ${e}</p>`).join('') +
+          '<p style="margin-top:10px; color:#aaa;">Please ensure your files are in the repository root alongside index.html and check case-sensitivity.</p>';
+        return;
+      }
+
       const w = loadedImages.beauty.naturalWidth;
       const h = loadedImages.beauty.naturalHeight;
 
@@ -260,90 +329,88 @@
       idCanvas.width = w;
       idCanvas.height = h;
 
-      // Draw the ID pass into the hidden memory canvas
+      // Draw ID map into offscreen buffer
       idCtx.drawImage(loadedImages.materialId, 0, 0, w, h);
 
+      hintBanner.textContent = 'Click any surface (floor, wall, cabinets) to customize finish';
       render();
-      setupInteractions();
+      setupEvents();
     }
 
     function render() {
       const w = canvas.width;
       const h = canvas.height;
 
-      // 1. Draw base render
+      // Draw beauty base
       ctx.globalCompositeOperation = 'source-over';
       ctx.drawImage(loadedImages.beauty, 0, 0, w, h);
 
-      // If no modifications have been made, exit early
       if (activeModifications.size === 0) return;
 
       const idData = idCtx.getImageData(0, 0, w, h).data;
 
-      // Create an offscreen buffer to composite active modifications
-      const overlayCanvas = document.createElement('canvas');
-      overlayCanvas.width = w;
-      overlayCanvas.height = h;
-      const overlayCtx = overlayCanvas.getContext('2d');
+      // Working offscreen layer
+      const workCanvas = document.createElement('canvas');
+      workCanvas.width = w;
+      workCanvas.height = h;
+      const workCtx = workCanvas.getContext('2d');
 
-      const maskImgData = overlayCtx.createImageData(w, h);
+      const maskImgData = workCtx.createImageData(w, h);
       const maskPixels = maskImgData.data;
 
-      // Generate mask based on registered material modifications
+      // Build colored mask from active selections
       for (const [rgbKey, color] of activeModifications.entries()) {
-        const [targetR, targetG, targetB] = rgbKey.split(',').map(Number);
-        
-        // Parse applied color values
-        const dummy = document.createElement('div');
-        dummy.style.color = color;
-        document.body.appendChild(dummy);
-        const resolved = getComputedStyle(dummy).color;
-        document.body.removeChild(dummy);
-        const [appR, appG, appB] = resolved.match(/\d+/g).map(Number);
+        const [tr, tg, tb] = rgbKey.split(',').map(Number);
+
+        // Resolve hex/rgba to numeric RGB
+        const temp = document.createElement('div');
+        temp.style.color = color;
+        document.body.appendChild(temp);
+        const resolved = getComputedStyle(temp).color;
+        document.body.removeChild(temp);
+        const [cr, cg, cb] = resolved.match(/\d+/g).map(Number);
 
         for (let i = 0; i < idData.length; i += 4) {
           const r = idData[i];
           const g = idData[i + 1];
           const b = idData[i + 2];
 
-          // Check if pixel belongs to target ID
           if (
-            Math.abs(r - targetR) <= CONFIG.tolerance &&
-            Math.abs(g - targetG) <= CONFIG.tolerance &&
-            Math.abs(b - targetB) <= CONFIG.tolerance
+            Math.abs(r - tr) <= COLOR_TOLERANCE &&
+            Math.abs(g - tg) <= COLOR_TOLERANCE &&
+            Math.abs(b - tb) <= COLOR_TOLERANCE
           ) {
-            maskPixels[i] = appR;
-            maskPixels[i + 1] = appG;
-            maskPixels[i + 2] = appB;
+            maskPixels[i] = cr;
+            maskPixels[i + 1] = cg;
+            maskPixels[i + 2] = cb;
             maskPixels[i + 3] = 255;
           }
         }
       }
 
-      overlayCtx.putImageData(maskImgData, 0, 0);
+      workCtx.putImageData(maskImgData, 0, 0);
 
-      // Multiply Ambient Occlusion over the tinted regions
-      overlayCtx.globalCompositeOperation = 'multiply';
-      overlayCtx.drawImage(loadedImages.ao, 0, 0, w, h);
+      // Multiply Ambient Occlusion over modified regions
+      workCtx.globalCompositeOperation = 'multiply';
+      workCtx.drawImage(loadedImages.ao, 0, 0, w, h);
 
-      // Re-mask to prevent AO from spilling outside the modified zones
-      overlayCtx.globalCompositeOperation = 'destination-in';
-      overlayCtx.putImageData(maskImgData, 0, 0);
+      // Mask precisely to keep unaffected areas clear
+      workCtx.globalCompositeOperation = 'destination-in';
+      workCtx.putImageData(maskImgData, 0, 0);
 
-      // Add Reflection Pass back over highlights
-      overlayCtx.globalCompositeOperation = 'screen';
-      overlayCtx.drawImage(loadedImages.reflection, 0, 0, w, h);
+      // Add Reflection Pass highlights
+      workCtx.globalCompositeOperation = 'screen';
+      workCtx.drawImage(loadedImages.reflection, 0, 0, w, h);
 
-      // Composite the modified surface back onto the beauty render
+      // Composite onto final canvas
       ctx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(overlayCanvas, 0, 0);
+      ctx.drawImage(workCanvas, 0, 0);
     }
 
-    function setupInteractions() {
+    function setupEvents() {
       const targetName = document.getElementById('targetName');
       const idDot = document.getElementById('idDot');
 
-      // Click to select region
       canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -356,14 +423,13 @@
         currentSelectedRGB = `${pixel[0]},${pixel[1]},${pixel[2]}`;
 
         idDot.style.background = `rgb(${currentSelectedRGB})`;
-        targetName.textContent = `Zone (${pixel[0]}, ${pixel[1]},${pixel[2]})`;
+        targetName.textContent = `Zone (${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
       });
 
-      // Swatch selection
       document.querySelectorAll('.swatch-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           if (!currentSelectedRGB) {
-            alert('Please click an area on the image first.');
+            alert('Click a surface on the render first.');
             return;
           }
 
@@ -376,7 +442,6 @@
         });
       });
 
-      // Reset
       document.getElementById('resetBtn').addEventListener('click', () => {
         activeModifications.clear();
         currentSelectedRGB = null;
@@ -387,7 +452,7 @@
       });
     }
 
-    loadAllImages();
+    init();
   </script>
 </body>
 </html>
